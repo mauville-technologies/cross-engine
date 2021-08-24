@@ -1,2 +1,3 @@
 cmake-build*
 external/SDL
+external/emsdk

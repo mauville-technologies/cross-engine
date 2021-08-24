@@ -1,7 +1,12 @@
 #include <SDL.h>
+
 #if __ANDROID__
 #define GLES
 #include <GLES3/gl3.h>
+#elif __EMSCRIPTEN__
+#define GLES
+#include <emscripten.h>
+#include <GLES2/gl2.h>
 #else
 #define GLAD
 #include <glad/glad.h>
@@ -9,17 +14,21 @@
 
 #include <iostream>
 
+bool running { true };
 void render(SDL_Window* window, const SDL_GLContext& context)
 {
     SDL_GL_MakeCurrent(window, context);
 
-    glClearColor(0.3f, 0.7f, 0.0f, 1.0f);
+    glClearColor( 1.0f, 0.0f, 0.0f, 1.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     SDL_GL_SwapWindow(window);
 }
 
-bool runMainLoop(SDL_Window* window, const SDL_GLContext& context)
+SDL_Window* window;
+SDL_GLContext context;
+
+void runMainLoop()
 {
     SDL_Event event;
 
@@ -29,39 +38,28 @@ bool runMainLoop(SDL_Window* window, const SDL_GLContext& context)
         switch (event.type)
         {
             case SDL_QUIT:
-                return false;
+                running = false;
+                return;
 
-                case SDL_KEYDOWN:
-                    if (event.key.keysym.sym == SDLK_ESCAPE)
-                    {
-                        return false;
-                    }
+            case SDL_KEYDOWN:
+                if (event.key.keysym.sym == SDLK_ESCAPE)
+                {
+                    running = false;
+                    return;
+                }
+                break;
+                default:
                     break;
-                    default:
-                        break;
         }
     }
 
     // Perform our rendering for this frame.
     render(window, context);
-
-    return true;
 }
 
 void runApplication()
 {
-    uint32_t width{640};
-    uint32_t height{640};
 
-    // Create a new SDL window based on OpenGL.
-    SDL_Window* window{SDL_CreateWindow(
-            "A Simple Triangle",
-            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-            width, height,
-            SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI)};
-
-    // Obtain an OpenGL context based on our window.
-    SDL_GLContext context{SDL_GL_CreateContext(window)};
 
     // Setup some basic global OpenGL state.
 #ifdef GLES
@@ -72,36 +70,54 @@ void runApplication()
     gladLoadGLLoader(SDL_GL_GetProcAddress);
     glClearDepth(1.f);
 #endif
-
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LEQUAL);
-    glEnable(GL_CULL_FACE);
-    glViewport(0, 0, width, height);
 
-    while (runMainLoop(window, context))
-    {
-        // Just waiting for the main loop to end.
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop(runMainLoop, 0, 1);
+#else
+    while(running) {
+        runMainLoop();
     }
+#endif
 
     // Clean up after ourselves.
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
 }
 
-int main(int, char* [])
+int main(int argc, char *argv[])
 {
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) == 0)
-    {
-        std::cout << "Successfully initialised SDL!" << std::endl;
+    uint32_t width{1000};
+    uint32_t height{1000};
 
-        runApplication();
+#ifdef __EMSCRIPTEN__
+    SDL_Renderer *renderer = nullptr;
+    SDL_CreateWindowAndRenderer(width, height, SDL_WINDOW_OPENGL, &window, &renderer);
+#else
+    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
+        SDL_Log("Failed to initialize SDL: %s", SDL_GetError());
+        return 1;
+    }
 
-        SDL_Quit();
-    }
-    else
-    {
-        std::cout << "Failed to initialise SDL!" << std::endl;
-    }
+    // Create a new SDL window based on OpenGL.
+    window = {SDL_CreateWindow(
+            "A Simple Triangle",
+            SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+            width, height,
+            SDL_WINDOW_RESIZABLE | SDL_WINDOW_OPENGL | SDL_WINDOW_ALLOW_HIGHDPI)};
+
+    // Obtain an OpenGL context based on our window.
+#endif
+    context = {SDL_GL_CreateContext(window)};
+
+//
+    std::cout << "Successfully initialised SDL!" << std::endl;
+
+    runApplication();
+
+    SDL_Quit();
+
 
     return 0;
 }

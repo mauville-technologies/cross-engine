@@ -4,6 +4,7 @@
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/android/app/jni/SDL" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/external/SDL" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/external/emsdk" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/project/android/app/jni/SDL" vcs="Git" />
   </component>
 </project>
