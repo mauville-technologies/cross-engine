@@ -172,7 +172,7 @@ void runApplication()
     SDL_GL_DeleteContext(context);
     SDL_DestroyWindow(window);
 }
-
+#include <vector>
 int main(int argc, char *argv[])
 {
     uint32_t width{800};
@@ -193,7 +193,6 @@ int main(int argc, char *argv[])
     // Obtain an OpenGL context based on our window.
     context = {SDL_GL_CreateContext(window)};
     getGLFunctions();
-//
     std::cout << "Successfully initialised SDL!" << std::endl;
     runApplication();
 

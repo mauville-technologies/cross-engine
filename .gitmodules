@@ -1,0 +1,9 @@
+[submodule "project/external/emsdk"]
+	path = project/external/emsdk
+	url = git@github.com:emscripten-core/emsdk.git
+[submodule "project/external/SDL"]
+	path = project/external/SDL
+	url = git@github.com:libsdl-org/SDL.git
+[submodule "project/android/app/jni/SDL"]
+	path = project/android/app/jni/SDL
+	url = git@github.com:libsdl-org/SDL.git

@@ -15,7 +15,7 @@ add_subdirectory(SDL)
 #add_subdirectory(SDL_mixer)
 #add_subdirectory(SDL_ttf)
 
-file(GLOB_RECURSE GLAD_SOURCES ../../../../external/glad/*.c)
+file(GLOB_RECURSE GLAD_SOURCES ../../../external/glad/*.c)
 
 file(GLOB_RECURSE MAIN_SOURCES ../../../main/*.cpp)
 file(GLOB_RECURSE MAIN_HEADERS ../../../main/*.h)
@@ -28,7 +28,7 @@ target_include_directories(${PROJECT_NAME}
             SDL2
             SDL2main
             SDL2-static
-            ../../../../external/glad/include
+        ../../../external/glad/include
 )
 
 target_link_libraries(${PROJECT_NAME}
