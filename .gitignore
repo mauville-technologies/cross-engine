@@ -1,6 +1,5 @@
 cmake-build*
 dist/
 build/
-
-#project/external/SDL
-#project/external/emsdk
+.idea
+__pycache__
