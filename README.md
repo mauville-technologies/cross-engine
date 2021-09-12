@@ -9,12 +9,6 @@ a macbook.
 - CMake
 - Python3 (setup scripts)
 
-### Windows
-Windows is a pain in the a** for some things. Here are some things you will probably need to 
-have set up yourself:
-
-- MinGW installed and on your $Path variable
-
 ## Setup
 
 I'm trying to keep a set of scripts in the `\s` folder that will maintain dependencies, perform

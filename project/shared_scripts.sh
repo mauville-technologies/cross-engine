@@ -2,7 +2,7 @@
 
 verify_external_folder_exists() {
     # Navigate into the 'root' folder from our current location.
-    pushd ../../ > /dev/null || return
+    pushd ../ > /dev/null || return
         # Check if there is no third-party folder ...
         if [ ! -d "external" ]; then
             # ... and if there isn't, create it.
@@ -24,7 +24,7 @@ fetch_external_lib_sdl() {
     verify_external_folder_exists
 
     # Navigate into the third-party folder two levels below us.
-    pushd ../../external > /dev/null || return
+    pushd ../external > /dev/null || return
         # Check to see if there is not yet an SDL folder.
         if [ ! -d "SDL" ]; then
             SDL_VER=2.0.16
@@ -51,7 +51,7 @@ fetch_external_lib_emscripten() {
     verify_external_folder_exists
 
     # Navigate into the third-party folder two levels below us.
-    pushd ../../external > /dev/null || return
+    pushd ../external > /dev/null || return
         # Check to see if there is not yet an SDL folder.
         if [ ! -d "emsdk" ]; then
             echo "Fetching Emscripten ..."
