@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.4)
 
-if ( ${CMAKE_SYSTEM_NAME} MATCHES "Android")
-    project (cross-engine)
-else()
-    project (cross-engine)
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME})
-endif()
+project (cross-engine)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME})
 
 set(CMAKE_CXX_STANDARD 17)
 
