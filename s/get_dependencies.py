@@ -1,3 +1,5 @@
+#!/bin/python3
+
 from common import run_command, get_platform, pushd
 import os
 import certifi
@@ -11,14 +13,11 @@ def update_submodules():
 def install_emsdk():
     path = os.path.join('project', 'external', 'emsdk')
 
-    with pushd(path):
-        os.environ['SSL_CERT_FILE'] = certifi.where()
-        extension = ''
+    path += os.path.sep
+    os.environ['SSL_CERT_FILE'] = certifi.where()
 
-        if get_platform() == "windows":
-            extension = '.bat'
-
-        run_command(['emsdk', 'install', 'latest'])
+    run_command([path + 'emsdk', 'install', 'latest'])
+    run_command([path + 'emsdk', 'activate', 'latest'])
 
 if __name__ == "__main__":
     # Update the submodules

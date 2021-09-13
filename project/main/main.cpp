@@ -2,9 +2,10 @@
 #include "shaders/simple_vertex_shader.h"
 
 #include "core/graphics.h"
+#include "rendering/vertex.h"
 
 #include <iostream>
-
+#include <cmath>
 
 SDL_Window* window;
 SDL_GLContext context;
@@ -25,7 +26,13 @@ void render(SDL_Window* window, const SDL_GLContext& context)
     glClearColor( 0.2f, 0.2f, 0.2f, 1.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+
     glUseProgram(shaderProgram);
+    uint32_t timeValue = SDL_GetTicks();
+    float greenValue = (std::sin(timeValue / 1000.0f) / 2.0f) + 0.5f;
+    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
+    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+
     BindVAO(VAO);
 
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
@@ -39,11 +46,11 @@ std::string stringFromStringView(const std::string_view& sv) {
 
 void setupScene() {
     printf("OpenGL version is (%s)\n", glGetString(GL_VERSION));
-    float vertices[] = {
-            0.5f,  0.5f, 0.0f,  // top right
-            0.5f, -0.5f, 0.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f,  // bottom left
-            -0.5f,  0.5f, 0.0f   // top left
+    OZZ::Vertex vertices[] = {
+            {{0.5f,  0.5f, 0.0f}},  // top right
+            {{0.5f, -0.5f, 0.0f}},  // bottom right
+            {{-0.5f, -0.5f, 0.0f}},  // bottom left
+            {{-0.5f,  0.5f, 0.0f}}   // top left
     };
 
     uint32_t indices[] = {  // note that we start from 0!

@@ -7,3 +7,6 @@
 [submodule "project/android/app/jni/SDL"]
 	path = project/android/app/jni/SDL
 	url = git@github.com:libsdl-org/SDL.git
+[submodule "project/external/glm"]
+	path = project/external/glm
+	url = git@github.com:g-truc/glm.git

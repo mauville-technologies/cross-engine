@@ -17,10 +17,17 @@ def pushd(new_dir):
 
 
 def run_command(command, env=os.environ):
-    process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, env=env)
 
-    for line in process.stdout:
-        print(line.decode('utf-8'), end='')
+    if get_platform().lower() == "linux":
+        new_command = "/bin/bash -c '" + " ".join(command) + "'"
+        print(new_command)
+        os.system(new_command)
+    else:
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, env=env)
+
+        for line in process.stdout:
+            print(line.decode('utf-8'), end='')
+
 
 def build_command_list(*commands):
     new_command = []

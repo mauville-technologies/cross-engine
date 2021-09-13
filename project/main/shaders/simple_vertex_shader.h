@@ -15,10 +15,12 @@ void main() {
 
 const std::string simpleFragmentShader = R"(#version 300 es
 precision highp float;
-out highp vec4 FragColor;
+out vec4 FragColor;
+
+uniform vec4 ourColor;
 
 void main()
 {
-    FragColor = vec4(1.0, 0.5, 0.2, 1.0);
+    FragColor = ourColor;
 }
 )";

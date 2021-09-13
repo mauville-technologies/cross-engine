@@ -1,8 +1,13 @@
 cmake_minimum_required(VERSION 3.4)
-project (cross-engine)
 
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME})
-set(CMAKE_CXX_STANDARD 20)
+if ( ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+    project (cross-engine)
+else()
+    project (cross-engine)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME})
+endif()
+
+set(CMAKE_CXX_STANDARD 17)
 
 # Some build settings required for Javascript build
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
@@ -15,25 +20,32 @@ if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
 endif()
 
 add_subdirectory(external/SDL)
+add_subdirectory(external/glm)
 
 file(GLOB_RECURSE GLAD_SOURCES external/glad/*.c)
 
 file(GLOB_RECURSE MAIN_SOURCES main/*.cpp)
 file(GLOB_RECURSE MAIN_HEADERS main/*.h)
 
-add_executable(${PROJECT_NAME} ${MAIN_SOURCES} ${MAIN_HEADERS} ${GLAD_SOURCES})
+if ( ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+    add_library(${PROJECT_NAME} SHARED ${MAIN_SOURCES} ${MAIN_HEADERS} ${GLAD_SOURCES})
+else()
+    add_executable(${PROJECT_NAME} ${MAIN_SOURCES} ${MAIN_HEADERS} ${GLAD_SOURCES})
+endif()
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC
         SDL2main
         SDL2-static
         external/glad/include
+        glm
         )
 
 target_link_libraries(${PROJECT_NAME}
         PUBLIC
         SDL2main
         SDL2-static
+        glm
         )
 
 # Use the build script for android cmake file
