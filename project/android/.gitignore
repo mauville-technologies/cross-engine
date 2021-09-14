@@ -4,3 +4,4 @@ app/*build
 app/*Build
 *.save
 build
+assets/

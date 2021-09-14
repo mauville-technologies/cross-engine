@@ -8,7 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 # Some build settings required for Javascript build
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     set(CMAKE_EXECUTABLE_SUFFIX ".html")
-    set(USE_FLAGS "-s USE_SDL=2 -s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2")
+    set(USE_FLAGS "-s USE_SDL=2 -s USE_FREETYPE=1 -s MAX_WEBGL_VERSION=2 -s MIN_WEBGL_VERSION=2 --preload-file ${PROJECT_SOURCE_DIR}/assets@/assets")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${USE_FLAGS}")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${USE_FLAGS}")
     set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${USE_FLAGS}")
@@ -35,6 +35,8 @@ target_include_directories(${PROJECT_NAME}
         SDL2-static
         external/glad/include
         glm
+        PRIVATE
+            main
         )
 
 target_link_libraries(${PROJECT_NAME}
@@ -44,5 +46,15 @@ target_link_libraries(${PROJECT_NAME}
         glm
         )
 
-# Use the build script for android cmake file
-# add_subdirectory(android/app/jni)
+# Asset management
+# The various platforms will have different locations where they expect
+# Their assets to be located.
+if ( ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${PROJECT_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets)
+else()
+    add_custom_command(TARGET ${PROJECT_NAME} PRE_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${PROJECT_SOURCE_DIR}/assets/ $<TARGET_FILE_DIR:${PROJECT_NAME}>/assets)
+endif()

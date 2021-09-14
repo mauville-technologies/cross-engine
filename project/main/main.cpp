@@ -1,11 +1,10 @@
 #include <SDL.h>
-#include "shaders/simple_vertex_shader.h"
 
 #include "core/graphics.h"
 #include "rendering/vertex.h"
+#include "rendering/shader.h"
 
 #include <iostream>
-#include <cmath>
 
 SDL_Window* window;
 SDL_GLContext context;
@@ -17,7 +16,8 @@ bool initialized { false };
 unsigned int VAO;
 unsigned int VBO;
 unsigned int EBO;
-unsigned int shaderProgram;
+
+OZZ::Shader* shader = nullptr;
 
 void render(SDL_Window* window, const SDL_GLContext& context)
 {
@@ -27,11 +27,7 @@ void render(SDL_Window* window, const SDL_GLContext& context)
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
-    glUseProgram(shaderProgram);
-    uint32_t timeValue = SDL_GetTicks();
-    float greenValue = (std::sin(timeValue / 1000.0f) / 2.0f) + 0.5f;
-    int vertexColorLocation = glGetUniformLocation(shaderProgram, "ourColor");
-    glUniform4f(vertexColorLocation, 0.0f, greenValue, 0.0f, 1.0f);
+    shader->Bind();
 
     BindVAO(VAO);
 
@@ -39,18 +35,25 @@ void render(SDL_Window* window, const SDL_GLContext& context)
     SDL_GL_SwapWindow(window);
 }
 
-
-std::string stringFromStringView(const std::string_view& sv) {
-    return std::string(sv);
-}
-
 void setupScene() {
     printf("OpenGL version is (%s)\n", glGetString(GL_VERSION));
     OZZ::Vertex vertices[] = {
-            {{0.5f,  0.5f, 0.0f}},  // top right
-            {{0.5f, -0.5f, 0.0f}},  // bottom right
-            {{-0.5f, -0.5f, 0.0f}},  // bottom left
-            {{-0.5f,  0.5f, 0.0f}}   // top left
+            {
+                .position = {0.5f,  0.5f, 0.0f},
+                .colour = {1.0f, 0.f, 0.f}
+            },  // top right
+            {
+                .position = {0.5f, -0.5f, 0.0f},
+                .colour = {0.0f, 1.0f, 0.0f}
+            },  // bottom right
+            {
+                .position = {-0.5f, -0.5f, 0.0f},
+                .colour = {0.0f, 0.0f, 1.0f}
+            },  // bottom left
+            {
+                .position = {-0.5f,  0.5f, 0.0f},
+                .colour = {0.5f, 0.5f, 0.5f}
+            }   // top left
     };
 
     uint32_t indices[] = {  // note that we start from 0!
@@ -62,49 +65,7 @@ void setupScene() {
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
 
-    unsigned int vertexShader;
-    vertexShader = glCreateShader(GL_VERTEX_SHADER);
-    unsigned int fragmentShader;
-    fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-
-    auto vertexSource = simpleVertexShader.c_str();
-    glShaderSource(vertexShader, 1, &vertexSource, nullptr);
-    glCompileShader(vertexShader);
-    int success {0};
-    glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-
-    if (!success) {
-        char infoLog[512];
-        glGetShaderInfoLog(vertexShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::VERTEX::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    auto fragmentSource = simpleFragmentShader.c_str();
-    glShaderSource(fragmentShader, 1, &fragmentSource, nullptr);
-    glCompileShader(fragmentShader);
-    glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-
-    if (!success) {
-        char infoLog[512];
-        glGetShaderInfoLog(fragmentShader, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::FRAGMENT::COMPILATION_FAILED\n" << infoLog << std::endl;
-    }
-
-    shaderProgram = glCreateProgram();
-    glAttachShader(shaderProgram, vertexShader);
-    glAttachShader(shaderProgram, fragmentShader);
-    glLinkProgram(shaderProgram);
-
-    glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-
-    if (!success) {
-        char infoLog[512];
-        glGetProgramInfoLog(shaderProgram, 512, nullptr, infoLog);
-        std::cout << "ERROR::SHADER::PROGRAM::LINK_FAILED\n" << infoLog << std::endl;
-    }
-
-    glDeleteShader(vertexShader);
-    glDeleteShader(fragmentShader);
+    shader = new OZZ::Shader("assets/shaders/simpleShader.vert", "assets/shaders/simpleShader.frag");
 
     /** This is the bind functionality */
     BindVAO(VAO);
@@ -114,9 +75,10 @@ void setupScene() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), nullptr);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)0);
     glEnableVertexAttribArray(0);
-
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(sizeof(OZZ::Vertex::position)));
+    glEnableVertexAttribArray(1);
 }
 
 void runMainLoop()

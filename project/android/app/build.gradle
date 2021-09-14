@@ -6,6 +6,20 @@ if (buildAsApplication) {
 else {
     apply plugin: 'com.android.library'
 }
+task CleanAssetsFolder(type: Delete) {
+    delete fileTree("src/main/assets").matching {
+        include "**/*"
+    }
+}
+
+task CopyAssetsToBundle(type: Copy) {
+    from '../../assets'
+    into 'src/main/assets/assets'
+    include '**/*'
+}
+
+CopyAssetsToBundle.dependsOn CleanAssetsFolder
+preBuild.dependsOn CopyAssetsToBundle
 
 android {
     compileSdkVersion 31
@@ -37,7 +51,6 @@ android {
         }
         externalNativeBuild {
             cmake {
-
                 path '../../../CMakeLists.txt'
             }
         }
@@ -60,6 +73,3 @@ android {
     }
 }
 
-dependencies {
-    implementation fileTree(include: ['*.jar'], dir: 'libs')
-}
