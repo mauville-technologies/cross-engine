@@ -2,6 +2,7 @@
 
 import pathlib
 import os
+
 from common import build_command_list, pushd, run_command, get_platform
 
 if __name__ == "__main__":
@@ -15,8 +16,9 @@ if __name__ == "__main__":
     platform = get_platform()
 
     if platform == "windows":
-        run_command(build_command_list([os.path.join(path_to_emsdk,'emsdk'), 'activate', 'latest'], ['emcmake', 'cmake', '..', '.']))
-        run_command(['ninja'])
+        with pushd(build_path):
+            run_command(build_command_list([os.path.join(path_to_emsdk,'emsdk'), 'activate', 'latest'], ['emcmake', 'cmake', '..', '.']))
+            run_command(['ninja'])
     elif platform == "linux":
         run_command(build_command_list(['pushd', path_to_emsdk], ['.', os.path.join(path_to_emsdk,'emsdk_env.sh')], ['popd'],
                                        ['pushd', build_path], ['emcmake', 'cmake', '..', '.'], ['popd']))

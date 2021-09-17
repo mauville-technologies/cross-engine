@@ -1,9 +1,13 @@
-cmake_minimum_required(VERSION 3.4)
+cmake_minimum_required(VERSION 3.10)
 
 project (cross-engine)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/dist/${CMAKE_SYSTEM_NAME})
 
-set(CMAKE_CXX_STANDARD 17)
+# Android studio is using an old version of CMake that doesn't allow c++20
+# I couldnt fix it so I did this.
+if ( NOT ${CMAKE_SYSTEM_NAME} MATCHES "Android")
+    set(CMAKE_CXX_STANDARD 20)
+endif()
 
 # Some build settings required for Javascript build
 if( ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
@@ -31,19 +35,21 @@ endif()
 
 target_include_directories(${PROJECT_NAME}
         PUBLIC
-        SDL2main
-        SDL2-static
+
         external/glad/include
         glm
         PRIVATE
+            SDL2main
+            SDL2-static
             main
         )
 
 target_link_libraries(${PROJECT_NAME}
         PUBLIC
+        glm
+        PRIVATE
         SDL2main
         SDL2-static
-        glm
         )
 
 # Asset management
