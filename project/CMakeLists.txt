@@ -21,6 +21,7 @@ endif()
 
 add_subdirectory(external/SDL)
 add_subdirectory(external/glm)
+add_subdirectory(external/stb)
 
 file(GLOB_RECURSE GLAD_SOURCES external/glad/*.c)
 
@@ -42,6 +43,7 @@ target_include_directories(${PROJECT_NAME}
             SDL2main
             SDL2-static
             main
+            stb
         )
 
 target_link_libraries(${PROJECT_NAME}
@@ -50,6 +52,7 @@ target_link_libraries(${PROJECT_NAME}
         PRIVATE
         SDL2main
         SDL2-static
+        stb
         )
 
 # Asset management

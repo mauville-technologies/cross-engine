@@ -3,8 +3,9 @@
 #include "core/graphics.h"
 #include "rendering/vertex.h"
 #include "rendering/shader.h"
-
+#include <cstddef>
 #include <iostream>
+#include <stb_image.h>
 
 SDL_Window* window;
 SDL_GLContext context;
@@ -17,7 +18,14 @@ unsigned int VAO;
 unsigned int VBO;
 unsigned int EBO;
 
+unsigned int texture;
+unsigned int texture2;
+
 OZZ::Shader* shader = nullptr;
+
+unsigned char* loadTexture(const std::string& filename) {
+
+}
 
 void render(SDL_Window* window, const SDL_GLContext& context)
 {
@@ -29,8 +37,12 @@ void render(SDL_Window* window, const SDL_GLContext& context)
 
     shader->Bind();
 
-    BindVAO(VAO);
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, texture2);
 
+    BindVAO(VAO);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
     SDL_GL_SwapWindow(window);
 }
@@ -40,19 +52,23 @@ void setupScene() {
     OZZ::Vertex vertices[] = {
             {
                 .position = {0.5f,  0.5f, 0.0f},
-                .colour = {1.0f, 0.f, 0.f}
+                .colour = {1.0f, 0.f, 0.f},
+                .uv = {1.0f, 1.0f}
             },  // top right
             {
                 .position = {0.5f, -0.5f, 0.0f},
-                .colour = {0.0f, 1.0f, 0.0f}
+                .colour = {0.0f, 1.0f, 0.0f},
+                .uv = {1.0f, 0.0f}
             },  // bottom right
             {
                 .position = {-0.5f, -0.5f, 0.0f},
-                .colour = {0.0f, 0.0f, 1.0f}
+                .colour = {0.0f, 0.0f, 1.0f},
+                .uv = {0.0f, 0.0f}
             },  // bottom left
             {
                 .position = {-0.5f,  0.5f, 0.0f},
-                .colour = {0.5f, 0.5f, 0.5f}
+                .colour = {0.5f, 0.5f, 0.5f},
+                .uv = {0.0f, 1.0f}
             }   // top left
     };
 
@@ -64,8 +80,13 @@ void setupScene() {
     GenVAO(1, &VAO);
     glGenBuffers(1, &VBO);
     glGenBuffers(1, &EBO);
+    glGenTextures(1, &texture);
+    glGenTextures(1, &texture2);
 
     shader = new OZZ::Shader("assets/shaders/simpleShader.vert", "assets/shaders/simpleShader.frag");
+    shader->Bind();
+    shader->SetInt("ourTexture", 0);
+    shader->SetInt("texture2",  1);
 
     /** This is the bind functionality */
     BindVAO(VAO);
@@ -75,10 +96,58 @@ void setupScene() {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
+    glBindTexture(GL_TEXTURE_2D, texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    int width, height, nrChannels;
+
+    // Load with SDL
+    stbi_set_flip_vertically_on_load(true);
+    SDL_RWops *file = SDL_RWFromFile("assets/textures/container.jpg", "rb");
+    size_t imageDataLength {static_cast<size_t>(SDL_RWsize(file))};
+    void* imageData{SDL_LoadFile_RW(file, nullptr, 1)};
+
+    // convert to stbi thing
+    auto* data = stbi_load_from_memory(static_cast<stbi_uc*>(imageData), imageDataLength, &width, &height, &nrChannels, 4);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    // Load with SDL
+    file = SDL_RWFromFile("assets/textures/awesomeface.png", "rb");
+    imageDataLength = static_cast<size_t>(SDL_RWsize(file));
+    imageData = SDL_LoadFile_RW(file, nullptr, 1);
+
+    // convert to stbi thing
+    data = stbi_load_from_memory(static_cast<stbi_uc*>(imageData), imageDataLength, &width, &height, &nrChannels, 4);
+    if (data) {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    } else {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
+
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)0);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(sizeof(OZZ::Vertex::position)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(offsetof(struct OZZ::Vertex, colour)));
     glEnableVertexAttribArray(1);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(offsetof(struct OZZ::Vertex, uv)));
+    glEnableVertexAttribArray(2);
+
 }
 
 void runMainLoop()
