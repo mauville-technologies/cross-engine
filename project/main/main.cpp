@@ -6,6 +6,8 @@
 #include <cstddef>
 #include <iostream>
 #include <stb_image.h>
+#include <glm/gtc/matrix_transform.hpp>
+#include <rendering/objectExamples.h>
 
 SDL_Window* window;
 SDL_GLContext context;
@@ -23,17 +25,25 @@ unsigned int texture2;
 
 OZZ::Shader* shader = nullptr;
 
-unsigned char* loadTexture(const std::string& filename) {
+constexpr glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
+};
 
-}
-
-void render(SDL_Window* window, const SDL_GLContext& context)
+void render()
 {
     SDL_GL_MakeCurrent(window, context);
 
     glClearColor( 0.2f, 0.2f, 0.2f, 1.0f );
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
 
     shader->Bind();
 
@@ -43,39 +53,38 @@ void render(SDL_Window* window, const SDL_GLContext& context)
     glBindTexture(GL_TEXTURE_2D, texture2);
 
     BindVAO(VAO);
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+
+    for (unsigned int i = 0; i < 10; i++) {
+        glm::mat4 model {1.f};
+        model = glm::translate(model, cubePositions[i]);
+        float angle = 20.0f * static_cast<float>(i);
+        model = glm::rotate(model, (static_cast<float>(SDL_GetTicks()) / 1000.f) * glm::radians(angle), glm::vec3{0.5f, 1.f, 0.f});
+        shader->SetMat4("model", model);
+
+        glDrawArrays(GL_TRIANGLES, 0, sizeof(cubeVertices) / sizeof(OZZ::Vertex));
+    }
     SDL_GL_SwapWindow(window);
 }
 
 void setupScene() {
     printf("OpenGL version is (%s)\n", glGetString(GL_VERSION));
-    OZZ::Vertex vertices[] = {
-            {
-                .position = {0.5f,  0.5f, 0.0f},
-                .colour = {1.0f, 0.f, 0.f},
-                .uv = {1.0f, 1.0f}
-            },  // top right
-            {
-                .position = {0.5f, -0.5f, 0.0f},
-                .colour = {0.0f, 1.0f, 0.0f},
-                .uv = {1.0f, 0.0f}
-            },  // bottom right
-            {
-                .position = {-0.5f, -0.5f, 0.0f},
-                .colour = {0.0f, 0.0f, 1.0f},
-                .uv = {0.0f, 0.0f}
-            },  // bottom left
-            {
-                .position = {-0.5f,  0.5f, 0.0f},
-                .colour = {0.5f, 0.5f, 0.5f},
-                .uv = {0.0f, 1.0f}
-            }   // top left
-    };
+
 
     uint32_t indices[] = {  // note that we start from 0!
             0, 1, 3,   // first triangle
             1, 2, 3    // second triangle
     };
+
+    glm::mat4 model = glm::mat4{1.0f};
+    model = glm::rotate(model, glm::radians(-55.f), glm::vec3{1.f, 0.f, 0.0f});
+
+    glm::mat4 view = glm::mat4 {1.f};
+    view = glm::translate(view, glm::vec3{0.f,0.f,-3.f});
+
+    int windowWidth, windowHeight;
+    SDL_GL_GetDrawableSize(window, &windowWidth, &windowHeight);
+
+    glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)windowWidth/(float)windowHeight, 0.1f, 100.0f);
 
     GenVAO(1, &VAO);
     glGenBuffers(1, &VBO);
@@ -87,11 +96,14 @@ void setupScene() {
     shader->Bind();
     shader->SetInt("ourTexture", 0);
     shader->SetInt("texture2",  1);
+    shader->SetMat4("model", model);
+    shader->SetMat4("view", view);
+    shader->SetMat4("projection", proj);
 
     /** This is the bind functionality */
     BindVAO(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
@@ -107,7 +119,7 @@ void setupScene() {
     // Load with SDL
     stbi_set_flip_vertically_on_load(true);
     SDL_RWops *file = SDL_RWFromFile("assets/textures/container.jpg", "rb");
-    size_t imageDataLength {static_cast<size_t>(SDL_RWsize(file))};
+    int imageDataLength {static_cast<int>(SDL_RWsize(file))};
     void* imageData{SDL_LoadFile_RW(file, nullptr, 1)};
 
     // convert to stbi thing
@@ -128,7 +140,7 @@ void setupScene() {
 
     // Load with SDL
     file = SDL_RWFromFile("assets/textures/awesomeface.png", "rb");
-    imageDataLength = static_cast<size_t>(SDL_RWsize(file));
+    imageDataLength = static_cast<int>(SDL_RWsize(file));
     imageData = SDL_LoadFile_RW(file, nullptr, 1);
 
     // convert to stbi thing
@@ -141,13 +153,12 @@ void setupScene() {
     }
     stbi_image_free(data);
 
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), nullptr);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(offsetof(struct OZZ::Vertex, colour)));
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(OZZ::Vertex), (void*)(offsetof(struct OZZ::Vertex, uv)));
     glEnableVertexAttribArray(2);
-
 }
 
 void runMainLoop()
@@ -180,7 +191,7 @@ void runMainLoop()
     }
 
     // Perform our rendering for this frame.
-    render(window, context);
+    render();
 }
 
 void runApplication()
@@ -196,8 +207,6 @@ void runApplication()
 
     glEnable(GL_DEPTH_TEST);
 
-
-
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(runMainLoop, 0, 1);
 #else
@@ -211,10 +220,10 @@ void runApplication()
     SDL_DestroyWindow(window);
 }
 #include <vector>
-int main(int argc, char *argv[])
+int main([[maybe_unused]] int argc, char *argv[])
 {
-    uint32_t width{800};
-    uint32_t height{600};
+    int width{800};
+    int height{600};
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_EVENTS) != 0) {
         SDL_Log("Failed to initialize SDL: %s", SDL_GetError());

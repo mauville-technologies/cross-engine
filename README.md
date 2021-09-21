@@ -11,7 +11,7 @@ a macbook.
 
 ## Setup
 
-I'm trying to keep a set of scripts in the `\s` folder that will maintain dependencies, perform
+I'm trying to keep a set of scripts in the `s/` folder that will maintain dependencies, perform
 system setup and generally allow this repository to be used straight from clone with little hassle
 
 ### Dependencies

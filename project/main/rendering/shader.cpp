@@ -7,6 +7,7 @@
 #include <sstream>
 #include <iostream>
 #include <core/graphics.h>
+#include <glm/gtc/type_ptr.hpp>
 
 OZZ::Shader::Shader(const std::string &vertexCode, const std::string& fragmentCode) {
     compileShader(vertexCode, fragmentCode);
@@ -43,6 +44,10 @@ void OZZ::Shader::SetInt(const std::string &name, int value) const {
 
 void OZZ::Shader::SetFloat(const std::string &name, float value) const {
     glUniform1f(glGetUniformLocation(_id, name.c_str()), value);
+}
+
+void OZZ::Shader::SetMat4(const std::string &name, const glm::mat4 &matrix) const {
+    glUniformMatrix4fv(glGetUniformLocation(_id, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
 void OZZ::Shader::compileShader(const std::string &vertexCode, const std::string &fragmentCode) {
@@ -87,3 +92,4 @@ void OZZ::Shader::compileShader(const std::string &vertexCode, const std::string
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 }
+
