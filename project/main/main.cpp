@@ -4,6 +4,7 @@
 #include "rendering/vertex.h"
 #include "rendering/shader.h"
 #include <cstddef>
+#include <sstream>
 #include <iostream>
 #include <stb_image.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -22,8 +23,32 @@ unsigned int EBO;
 
 unsigned int texture;
 unsigned int texture2;
+#ifdef __ANDROID__
+    #include <android/log.h>
+    #define LOGW(...) __android_log_print(ANDROID_LOG_WARN,__VA_ARGS__)
+#endif
+/** CAMERA */
+glm::mat4 view{};
+glm::vec3 cameraPos {0.f, 0.f, 5.0f};
+glm::vec3 cameraFront {0.f, 0.f, -1.f};
+glm::vec3 cameraUp {0.f, 1.f,0.f};
+float yaw {-90.f};
+float pitch {0.f};
 
 OZZ::Shader* shader = nullptr;
+
+float deltaTime = 0.0f;
+float lastFrame = 0.0f;
+
+/**
+ * INPUT STUFF
+ */
+int numFingers {0};
+bool isDraggingTwoFingers {false};
+bool mouseCaptured {false};
+glm::vec2 doubleTouchLastFrame {0.f,0.f};
+glm::vec2 mouseLastFrame{0.f, 0.f};
+
 
 constexpr glm::vec3 cubePositions[] = {
         glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -54,6 +79,10 @@ void render()
 
     BindVAO(VAO);
 
+
+    view = glm::lookAt(cameraPos, cameraPos + cameraFront, cameraUp);
+    shader->SetMat4("view", view);
+
     for (unsigned int i = 0; i < 10; i++) {
         glm::mat4 model {1.f};
         model = glm::translate(model, cubePositions[i]);
@@ -69,6 +98,8 @@ void render()
 void setupScene() {
     printf("OpenGL version is (%s)\n", glGetString(GL_VERSION));
 
+    // Create the camera
+    view = glm::lookAt({0.f,0.f,5.f}, {0.f, 0.f, 0.f}, glm::vec3{0.f, 1.f, 0.f});
 
     uint32_t indices[] = {  // note that we start from 0!
             0, 1, 3,   // first triangle
@@ -78,8 +109,7 @@ void setupScene() {
     glm::mat4 model = glm::mat4{1.0f};
     model = glm::rotate(model, glm::radians(-55.f), glm::vec3{1.f, 0.f, 0.0f});
 
-    glm::mat4 view = glm::mat4 {1.f};
-    view = glm::translate(view, glm::vec3{0.f,0.f,-3.f});
+
 
     int windowWidth, windowHeight;
     SDL_GL_GetDrawableSize(window, &windowWidth, &windowHeight);
@@ -167,27 +197,144 @@ void runMainLoop()
         setupScene();
         initialized = true;
     }
+    float currentFrame = SDL_GetTicks() / 1000.f;
+    deltaTime = currentFrame - lastFrame;
+    lastFrame = currentFrame;
+
     SDL_Event event;
+    const float cameraSpeed = 15.f * deltaTime;
+
+    bool screenTouched = false;
 
     // Each loop we will process any events that are waiting for us.
     while (SDL_PollEvent(&event))
     {
+        bool isFinger = false;
         switch (event.type)
         {
             case SDL_QUIT:
                 running = false;
                 return;
 
-            case SDL_KEYDOWN:
-                if (event.key.keysym.sym == SDLK_ESCAPE)
-                {
+            case SDL_KEYDOWN: {
+                if (event.key.keysym.sym == SDLK_ESCAPE) {
                     running = false;
                     return;
                 }
                 break;
-                default:
+            }
+#ifdef __ANDROID__
+            case SDL_FINGERDOWN:
+                mouseCaptured = true;
+                numFingers++;
+                break;
+            case SDL_FINGERUP:
+                numFingers--;
+                break;
+            case SDL_FINGERMOTION: {
+                if (mouseCaptured && numFingers == 1) {
+                    float xoffset = event.tfinger.dx;
+                    float yoffset = event.tfinger.dy;
+
+                    const float sensitivity = 100.f;
+                    xoffset *= sensitivity;
+                    yoffset *= -sensitivity;
+
+                    yaw += xoffset;
+                    pitch += yoffset;
+
+                    glm::vec3 direction {
+                            std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch)),
+                            std::sin(glm::radians(pitch)),
+                            std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch))
+                    };
+
+                    cameraFront = glm::normalize(direction);
+                }
+                break;
+            }
+            case SDL_MULTIGESTURE: {
+                if (event.mgesture.numFingers == 2) {
+                    screenTouched = true;
+                    if (doubleTouchLastFrame == glm::vec2{0,0}) {
+                        doubleTouchLastFrame = glm::vec2{event.mgesture.x, event.mgesture.y};
+                        break;
+                    }
+
+                    float dragSpeed = 10.f;
+                    float deltaUp =  (event.mgesture.y - doubleTouchLastFrame.y) * dragSpeed * 2;
+                    cameraPos += (deltaUp * cameraSpeed) * cameraFront;
+
+                    float deltaRight = (event.mgesture.x - doubleTouchLastFrame.x) * dragSpeed;
+                    cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * (cameraSpeed * deltaRight);
+                    doubleTouchLastFrame = glm::vec2{event.mgesture.x, event.mgesture.y};
                     break;
+                }
+
+                break;
+            }
+#endif
+#ifndef __ANDROID__
+            case SDL_MOUSEBUTTONDOWN: {
+                if (!mouseCaptured) {
+                    SDL_SetRelativeMouseMode(SDL_TRUE);
+                    int mouseX, mouseY;
+                    const Uint32 mouseState = SDL_GetMouseState(&mouseX, &mouseY);
+
+                    mouseLastFrame = glm::vec2{mouseX, mouseY};
+                    mouseCaptured = true;
+                }
+                break;
+            }
+            case SDL_MOUSEMOTION: {
+                if (mouseCaptured) {
+                    float xoffset = event.motion.xrel;
+                    float yoffset = event.motion.yrel;
+
+                    const float sensitivity = !isFinger ? 0.1f : 0.1f;
+                    xoffset *= sensitivity;
+                    yoffset *= -sensitivity;
+
+                    yaw += xoffset;
+                    pitch += yoffset;
+
+                    glm::vec3 direction {
+                            std::cos(glm::radians(yaw)) * std::cos(glm::radians(pitch)),
+                            std::sin(glm::radians(pitch)),
+                            std::sin(glm::radians(yaw)) * std::cos(glm::radians(pitch))
+                    };
+
+                    cameraFront = glm::normalize(direction);
+                }
+                break;
+            }
+#endif
+            default:
+                break;
         }
+    }
+
+    if (!screenTouched) doubleTouchLastFrame = glm::vec2{0.f,0.f};
+    const Uint8* keystate = SDL_GetKeyboardState(NULL);
+
+
+    if (keystate[SDL_SCANCODE_W]) {
+        cameraPos += cameraSpeed * cameraFront;
+    }
+    if (keystate[SDL_SCANCODE_S]) {
+        cameraPos -= cameraSpeed * cameraFront;
+    }
+    if (keystate[SDL_SCANCODE_A]) {
+        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    if (keystate[SDL_SCANCODE_D]) {
+        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * cameraSpeed;
+    }
+    if (keystate[SDL_SCANCODE_Q]) {
+        cameraPos += cameraUp * cameraSpeed;
+    }
+    if (keystate[SDL_SCANCODE_E]) {
+        cameraPos -= cameraUp * cameraSpeed;
     }
 
     // Perform our rendering for this frame.
@@ -210,6 +357,7 @@ void runApplication()
 #ifdef __EMSCRIPTEN__
     emscripten_set_main_loop(runMainLoop, 0, 1);
 #else
+    SDL_GL_SetSwapInterval(1);
     while(running) {
         runMainLoop();
     }
